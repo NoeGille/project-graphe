@@ -3,15 +3,7 @@ import numpy as np
 import numpy.random as rd
 import matplotlib.pyplot as plt
 from copy import deepcopy
-
-from enum import Enum
-
-class Couleur(Enum):
-    '''Enumération des couleurs qui représente l'état d'exploration d'un sommet pour
-    le parcours en profondeur'''
-    BLANC = 0
-    GRIS = 1
-    NOIR = 2
+from couleur import Couleur
 
 class Graphe():
     '''## Un graphe non orienté, complet et valué modélisant le problème du voyageur de commerce'''
