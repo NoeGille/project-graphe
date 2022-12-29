@@ -74,26 +74,76 @@ class Graphe():
         return (self.y[C - 1] - self.y[A - 1]) * (self.x[B - 1] - self.x[A - 1]) > (self.y[B - 1] - self.y[A - 1]) * (self.x[C - 1] - self.x[A - 1])
         
     def Apminimum(self) -> np.ndarray:
-        '''### Arête de poids minimum'''
+        '''### Arête de poids minimum
+        On sélectionne l'arête de poids minimum et on la supprime du graphe.
+        On ajoute l'arête à la liste d'arêtes du cycle.
+        On recommence jusqu'à obtenir n - 1 arêtes
+        Une fois qu'on a n-1 arêtes, on crée un cycle à partir de ces arêtes'''
         
+        temp_D = deepcopy(self.D)
+        G = {}
+        for i in range(1, self.n + 1):
+            G[i] = []
+        nb_arete = 0
+        while  nb_arete < self.n - 1:
+            # Recherche de l'arête de poids minimum
+            min = np.inf
+            min_index = (0, 0)
+            for i in range(self.n):
+                for j in range(i + 1, self.n):
+                    if temp_D[i, j] < min:
+                        min = temp_D[i, j]
+                        min_index = (i + 1, j + 1)
+            print("---------------------------------------")
+            print("Arête de poids minimum :", min_index)
+            print(G)
+            if not self.forme_un_circuit(min_index[0], min_index[1], G):
+                print("On ajoute l'arête", min_index[0], min_index[1])
+                G[min_index[0]].append(min_index[1])
+                G[min_index[1]].append(min_index[0])
+                nb_arete += 1
+            temp_D[min_index[0] - 1, min_index[1] - 1] = np.inf
+        # On crée le cycle à partir de la liste d'arêtes
+        sommet_courant = 0
+        for key in G:
+            if len(G[key]) == 1:
+                sommet_courant = key
+                break
+        cycle = [sommet_courant]
+        while len(cycle) < self.n:
+            for s in G[sommet_courant]:
+                if s not in cycle:
+                    cycle.append(s)
+                    sommet_courant = s
+        cycle.append(cycle[0])
+        return np.array(cycle)
+
 
     def forme_un_circuit(self, sommet1: int, sommet2: int, G: dict) -> bool:
         '''### Vérifie si l'arête (sommet1, sommet2) forme un circuit dans le graphe G
+        G est représenté par une liste d'arêtes
         Cette méthode utilise l'algorithme d'exploration de graphes pour vérifier si
         sommet 2 est accessible à partir de sommet1'''
         frontiere = [sommet1]
         genere = [sommet1]
+        if len(G[sommet1]) > 1 or len(G[sommet2]) > 1:
+            print("d(sommet1) > 1 ou d(sommet2) > 1")
+            return True
         for i in range(0, self.n):
             while len(frontiere) > 0:
                 # On choisit toujours le premier sommet de la frontiere
                 sommet_choisi = frontiere[0]
                 frontiere = frontiere[1:]
                 for successeur in G[sommet_choisi]:
+                    print("tour de boucle : ", i)
+                    print("   sommet_choisi : ", sommet_choisi) 
+                    print("   successeur : ", successeur)
                     if successeur == sommet2:
+                        print("successeur == sommet2")
                         return True
                     if successeur not in genere:
                         genere.append(successeur)
-                        frontiere.append(sommet_choisi)
+                        frontiere.append(successeur)              
         return False
 
     def Pvcprim(self) -> np.ndarray:
