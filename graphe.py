@@ -94,11 +94,7 @@ class Graphe():
                     if temp_D[i, j] < min:
                         min = temp_D[i, j]
                         min_index = (i + 1, j + 1)
-            print("---------------------------------------")
-            print("Arête de poids minimum :", min_index)
-            print(G)
             if not self.forme_un_circuit(min_index[0], min_index[1], G):
-                print("On ajoute l'arête", min_index[0], min_index[1])
                 G[min_index[0]].append(min_index[1])
                 G[min_index[1]].append(min_index[0])
                 nb_arete += 1
@@ -127,7 +123,6 @@ class Graphe():
         frontiere = [sommet1]
         genere = [sommet1]
         if len(G[sommet1]) > 1 or len(G[sommet2]) > 1:
-            print("d(sommet1) > 1 ou d(sommet2) > 1")
             return True
         for i in range(0, self.n):
             while len(frontiere) > 0:
@@ -135,11 +130,7 @@ class Graphe():
                 sommet_choisi = frontiere[0]
                 frontiere = frontiere[1:]
                 for successeur in G[sommet_choisi]:
-                    print("tour de boucle : ", i)
-                    print("   sommet_choisi : ", sommet_choisi) 
-                    print("   successeur : ", successeur)
                     if successeur == sommet2:
-                        print("successeur == sommet2")
                         return True
                     if successeur not in genere:
                         genere.append(successeur)
@@ -147,10 +138,34 @@ class Graphe():
         return False
 
     def Pvcprim(self) -> np.ndarray:
-        '''### Utilise l'arbre couvrant de poids minimum pour trouver un cycle hamiltonien 
-        de poids minimum'''
-        pass
-
+        '''### Utilise l'algorithme de Prim dans sa version efficace qui utilise un tas.
+        On construit un arbre couvrant de poids minimum. On fait le parcours préfixe
+        de l'arbre obtenu pour obtenir le cycle hamiltonien'''
+        r = 1
+        acm = []
+        T = []
+        # On ajoute la racine à l'arbre couvrant
+        T.append(r)
+        # On fait pousser un acm à partir de la racine
+        while len(T) != self.n:
+            # Calcule du cocycle et de l'arête de poids minimum du cocycle
+            tas = []
+            min = np.inf
+            for s in T:
+                for i in range(self.n):
+                    if i + 1 not in T:
+                        if self.D[s - 1, i] < min:
+                            min = self.D[s - 1, i]
+                            min_index = (s, i + 1)
+                        # (sommet dans T, sommet pas dans T, poids de l'arête)
+                        cocycle.append((s, i + 1, self.D[s - 1, i]))
+            # On ajoute l'arête de poids minimum à l'acm
+            acm.append(min_index)
+            # On ajoute le sommet pas dans T à l'arbre couvrant
+            T.append(min_index[1])
+        return acm
+    
+    
     def Branch_and_bound(self) -> np.ndarray:
         '''### Algorithme du branch and bound'''
         pass
@@ -205,8 +220,3 @@ class Graphe():
             else:
                 self.pere[r2] += self.pere[r1]
                 self.pere[r1] = r2
-                
-if __name__ == '__main__':
-    g = Graphe(5)
-    print(g.Ppvoisin())
-    g.Apminimum()
