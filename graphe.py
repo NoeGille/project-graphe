@@ -3,7 +3,9 @@ import numpy as np
 import numpy.random as rd
 import matplotlib.pyplot as plt
 from copy import deepcopy
+from copy import copy
 from couleur import Couleur
+from tas import Tas
 
 class Graphe():
     '''## Un graphe non orienté, complet et valué modélisant le problème du voyageur de commerce'''
@@ -25,7 +27,16 @@ class Graphe():
         for i in range(n):
             for j in range(n):
                 self.D[i, j] = np.sqrt((self.x[i] - self.x[j])**2 + (self.y[i] - self.y[j])**2)
-        print("Création du graphe")
+
+    # REQUETES
+
+    def poids_cycle(self, cycle: np.ndarray) -> float:
+        '''Renvoie le poids du cycle donné en paramètre'''
+        poids = 0
+        for i in range(len(cycle) - 1):
+            poids += self.D[cycle[i] - 1, cycle[i + 1] - 1]
+        return poids
+
     # ALGORITHMES
 
     def Ppvoisin(self) -> np.ndarray:
@@ -90,6 +101,8 @@ class Graphe():
             min = np.inf
             min_index = (0, 0)
             for i in range(self.n):
+                # Comme le graphe est complet et non orienté, la matrice D est symétrique
+                # On ne parcourt donc que la partie triangulaire supérieure de la matrice
                 for j in range(i + 1, self.n):
                     if temp_D[i, j] < min:
                         min = temp_D[i, j]
@@ -136,39 +149,84 @@ class Graphe():
                         genere.append(successeur)
                         frontiere.append(successeur)              
         return False
-
+    
     def Pvcprim(self) -> np.ndarray:
         '''### Utilise l'algorithme de Prim dans sa version efficace qui utilise un tas.
         On construit un arbre couvrant de poids minimum. On fait le parcours préfixe
         de l'arbre obtenu pour obtenir le cycle hamiltonien'''
         r = 1
         acm = []
-        T = []
-        # On ajoute la racine à l'arbre couvrant
-        T.append(r)
+        T = [r]
+        # Le complémentaire de T dans S
+        C_T = [i for i in range(1, self.n + 1) if i != r]
         # On fait pousser un acm à partir de la racine
         while len(T) != self.n:
             # Calcule du cocycle et de l'arête de poids minimum du cocycle
-            tas = []
+            tas = Tas() # Voir la classe Tas
             min = np.inf
-            for s in T:
-                for i in range(self.n):
-                    if i + 1 not in T:
-                        if self.D[s - 1, i] < min:
-                            min = self.D[s - 1, i]
-                            min_index = (s, i + 1)
-                        # (sommet dans T, sommet pas dans T, poids de l'arête)
-                        cocycle.append((s, i + 1, self.D[s - 1, i]))
+            for sommet in T:
+                for sommet_c in C_T:
+                    tas.inserer((sommet, sommet_c), self.D[sommet - 1, sommet_c - 1])
+            min = tas.racine()[0][1]
             # On ajoute l'arête de poids minimum à l'acm
-            acm.append(min_index)
+            acm.append(tas.racine()[0],)
             # On ajoute le sommet pas dans T à l'arbre couvrant
-            T.append(min_index[1])
-        return acm
+            T.append(min)
+            C_T.remove(min)
+        res = [r]
+        for a in acm:
+            res.append(a[1])
+        return res + [r]
     
-    
-    def Branch_and_bound(self) -> np.ndarray:
-        '''### Algorithme du branch and bound'''
-        pass
+    def Esdemisomme(self) -> np.ndarray:
+        '''### Algorithme du branch and bound
+        On regarde chaque solution possibles. On développe toujours
+        la solution la plus prometteuses, c'est à dire, celle qui a la plus
+        petite borne minorante.'''
+        
+        # Initialisation
+
+        # Déterminer une borne minorante pour le poids du cycle hamiltonien
+        # On utilise la matrice D pour calculer cette borne
+        tas = Tas()
+        # aretes_borne est la liste des poids des arêtes du cycle hamiltonien.
+        # [p(1,x1), p(1,y1), p(2,x2), p(2,y2) ... p(n, xn), p(n, yn)]
+        poids_aretes_borne = []
+        # On construit un cycle hamiltonien à partir de la racine
+        cycle = [1]
+        temp_D = deepcopy(self.D)
+        # On choisit les deux plus petites arêtes incidentes à chaque sommet : 
+        for i in range(self.n):
+            i_aretes = temp_D[i]
+            i_aretes[i] = np.inf
+            min1 = np.argmin(i_aretes)
+            poids_aretes_borne.append(self.D[i, min1])
+            i_aretes[min1] = np.inf
+            poids_aretes_borne.append(self.D[i, np.argmin(i_aretes)])
+        # On calcule la borne minorante
+        borne = np.sum(poids_aretes_borne) / 2
+        # On utilise un tas de priorité pour stocker les solutions et leur borne minorante.
+        # On stocke également la liste des poids des arêtes du cycle hamiltonien pour
+        # le calcul de la borne minorante.
+        tas.inserer(([1], poids_aretes_borne), borne)
+
+        # Boucle principal
+        while len(cycle) < self.n:
+            # On développe toujours la solution qui a la plus petite borne minorante,
+            # c'est à dire la racine du tas.
+            temp_racine_tas = tas.racine()[0][1]
+            tas.supprimer()
+            for i in range(self.n):
+                if i + 1 not in cycle:
+                    poids_aretes_borne = copy(temp_racine_tas)
+                    poids_aretes_borne[(i + 1) * 2 - 1] = self.D[i, cycle[-1] - 1]
+                    poids_aretes_borne[(cycle[-1] - 1) * 2 - 1] = self.D[cycle[-1] - 1, i]
+                    # On calcule la nouvelle borne minorante
+                    borne = np.sum(poids_aretes_borne) / 2
+                    tas.inserer((cycle + [i + 1], poids_aretes_borne), borne)
+            borne = tas.racine()[1]
+            cycle = tas.racine()[0][0]
+        return cycle + [1]
 
     # COMMANDES
 
@@ -189,34 +247,10 @@ class Graphe():
         self.__affiche_plan()
         for i in range(len(cycle) - 1):
             plt.plot([self.x[cycle[i] - 1], self.x[cycle[i + 1] - 1]], [self.y[cycle[i] - 1], self.y[cycle[i + 1] - 1]], color='red')
+        plt.title("Poids du cycle : " + str(self.poids_cycle(cycle)))
         plt.show()
 
-    # EVENTUELLEMENT UTILE
-    def __trouver_rapide(self, sommet: int) -> int:
-        '''Trouve la racine du sommet dans le graphe G et fais la compression de chemin'''
-
-        i = sommet
-
-        # Recherche de la racine
-        while self.pere[i] > 0:
-            i = self.pere[i]
-        res = i
-        i = sommet
-
-        # Compression de chemin
-        while self.pere[i] > 0:
-            j = i
-            self.pere[j] = res
-            i = self.pere[i]
-        
-        return res
-
-    def __reunir_pondere(self, r1, r2):
-        '''### Raccroche la racine de l'arbre de poids minimum à la racine de l'arbre de poids maximum'''
-        if r1 != r2:
-            if self.pere[r1] < self.pere[r2]:
-                self.pere[r1] += self.pere[r2]
-                self.pere[r2] = r1
-            else:
-                self.pere[r2] += self.pere[r1]
-                self.pere[r1] = r2
+    def executer(self, i):
+        '''### Exécute l'algorithme i'''
+        dico = {1: self.Ppvoisin, 2: self.OptimisePpvoisin, 3: self.Apminimum, 4: self.Pvcprim, 5: self.Esdemisomme}
+        return dico[i]()
