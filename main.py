@@ -2,22 +2,13 @@ from graphe import Graphe
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-# 1) Implémentation d'une interface graphique avec Tkinter
-# Choix de l'algo à tester
-# choix du nombre de sommet du graphe à générer
-# choix du nombre de test à effectuer
-# Affichage du temps d'exécution 
-# Affichage d'un graphique ou histogramme des résultats
-# Tableaux comparatifs des performances de chaque algorithmes sur x essaies, sur n sommets
 
-# 2) Implémentation d'une interface permettant d'intéragir avec l'application dans un terminal de commande
-# Cette interface permet de tester les algorithmes et d'afficher le graphe et le résultat de l'algorithme
-# Cette interface permet aussi d'afficher des statistiques sur x exécution d'un algorithme.
-
-# 2) Implémentation d'une interface permettant d'intéragir avec l'application dans un terminal de commande
 class App():
-    '''Application permettant de faire des statistiques sur les différents algos de la classe Graphe'''
-    
+    '''###Application permettant de faire des statistiques sur les différents algos de la classe Graphe.
+    Cette application contient une interface permettant d'intéragir avec les algorithmes dans un terminal de commande
+    Cette interface permet de tester les algorithmes et d'afficher le graphe et le résultat de l'algorithme
+    Cette interface permet aussi d'afficher des statistiques sur x exécution d'un algorithme.'''
+
     # CONSTANTES
 
     DEFAULT_NB_SOMMETS = 10
