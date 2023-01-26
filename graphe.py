@@ -4,7 +4,6 @@ import numpy.random as rd
 import matplotlib.pyplot as plt
 from copy import deepcopy
 from copy import copy
-from couleur import Couleur
 from tas import Tas
 
 class Graphe():
@@ -70,18 +69,19 @@ class Graphe():
             for j in range(i + 2, self.n):
                 if not(cycle[j] in a1 or cycle[j + 1] in a1):
                     a2 = (cycle[j], cycle[j + 1])
-                    if self.croisement(a1[0], a1[1], a2[0], a2[1]):
+                    if self.__croisement(a1[0], a1[1], a2[0], a2[1]):
                         invert = cycle[j: i: -1]
                         cycle_decroise = np.concatenate((cycle[0 : i + 1], invert, cycle[j + 1 : self.n + 1]))
                         if self.D[cycle_decroise[:-1] - 1, cycle_decroise[1:] - 1].sum() < self.D[cycle[:-1] - 1, cycle[1:] - 1].sum():
                             cycle = cycle_decroise
         return cycle
 
-    def croisement(self, s1: int, s2: int, s3: int, s4: int) -> bool:
+    def __croisement(self, s1: int, s2: int, s3: int, s4: int) -> bool:
         '''### Vérifie si les arêtes (s1, s2) et (s3, s4) se croisent'''
-        return self.ccw(s1, s3, s4) != self.ccw(s2, s3, s4) and self.ccw(s1, s2, s3) != self.ccw(s1, s2, s4)
+        return self.__ccw(s1, s3, s4) != self.__ccw(s2, s3, s4) and self.__ccw(s1, s2, s3) != self.__ccw(s1, s2, s4)
         
-    def ccw(self, A,B,C):
+    def __ccw(self, A,B,C):
+        '''### Renvoie True si les trois points sont orientés dans le sens anti-horaire. Sinon False'''
         return (self.y[C - 1] - self.y[A - 1]) * (self.x[B - 1] - self.x[A - 1]) > (self.y[B - 1] - self.y[A - 1]) * (self.x[C - 1] - self.x[A - 1])
         
     def Apminimum(self) -> np.ndarray:
@@ -107,7 +107,7 @@ class Graphe():
                     if temp_D[i, j] < min:
                         min = temp_D[i, j]
                         min_index = (i + 1, j + 1)
-            if not self.forme_un_circuit(min_index[0], min_index[1], G):
+            if not self.__forme_un_circuit(min_index[0], min_index[1], G):
                 G[min_index[0]].append(min_index[1])
                 G[min_index[1]].append(min_index[0])
                 nb_arete += 1
@@ -127,8 +127,7 @@ class Graphe():
         cycle.append(cycle[0])
         return np.array(cycle)
 
-
-    def forme_un_circuit(self, sommet1: int, sommet2: int, G: dict) -> bool:
+    def __forme_un_circuit(self, sommet1: int, sommet2: int, G: dict) -> bool:
         '''### Vérifie si l'arête (sommet1, sommet2) forme un circuit dans le graphe G
         G est représenté par une liste d'arêtes
         Cette méthode utilise l'algorithme d'exploration de graphes pour vérifier si
@@ -149,6 +148,7 @@ class Graphe():
                         genere.append(successeur)
                         frontiere.append(successeur)              
         return False
+
     
     def Pvcprim(self) -> np.ndarray:
         '''### Utilise l'algorithme de Prim dans sa version efficace qui utilise un tas.
@@ -169,7 +169,7 @@ class Graphe():
                     tas.inserer((sommet, sommet_c), self.D[sommet - 1, sommet_c - 1])
             min = tas.racine()[0][1]
             # On ajoute l'arête de poids minimum à l'acm
-            acm.append(tas.racine()[0],)
+            acm.append(tas.racine()[0])
             # On ajoute le sommet pas dans T à l'arbre couvrant
             T.append(min)
             C_T.remove(min)
@@ -254,3 +254,8 @@ class Graphe():
         '''### Exécute l'algorithme i'''
         dico = {1: self.Ppvoisin, 2: self.OptimisePpvoisin, 3: self.Apminimum, 4: self.Pvcprim, 5: self.Esdemisomme}
         return dico[i]()
+    
+if __name__ == "__main__":
+    g = Graphe(20)
+    print(g.Pvcprim())
+    g.dessiner(g.Pvcprim())

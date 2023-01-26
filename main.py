@@ -12,10 +12,10 @@ class App():
     # CONSTANTES
 
     DEFAULT_NB_SOMMETS = 10
-    DEFAULT_NB_ESSAIES = 10
+    DEFAULT_NB_ESSAIES = 100
     ALGO_NOM = {1: "Ppvoisin", 2: "OptimisePpvoisin", 3: "Apminimum", 4: "Pvcprim", 5: "Esdemisomme"}
     # Temps limite en secondes à partir duquel on considère que le temps d'exécution de l'algo n'est pas raisonnable
-    TEMPS_MAX = 1
+    TEMPS_MAX = 0.2
     # Nombre de sommets à ajouter à chaque itération pour le test du nombre de sommets croissant
     AJOUTE_SOMMET = 1
 
@@ -31,23 +31,25 @@ class App():
 
     def run(self):
         '''Point de démarrage de l'application'''
-        dico = {1: self.choisir_algo, 2: self.choisir_nb_sommets, 3: self.choisir_nb_essaies, 4: self.lancer_algo, 5: self.lancer_tous_algo, 6: self.test_nb_sommet_croissant, 7: self.quitter}
+        dico = {1: self.choisir_algo, 2: self.choisir_nb_sommets, 3: self.choisir_nb_essaies, 4: self.lancer_algo, 5: self.lancer_tous_algo, 6: self.test_nb_sommet_croissant, 7:self.tests_nb_sommet_croissant, 8: self.dessiner_graphe, 9: self.quitter}
         print("Lancement de l'application")
-        print("Ecrivez 7 pour quitter l'application depuis le menu principal ou ctrl+c dans le terminal.")
+        print("Ecrivez 8 pour quitter l'application depuis le menu principal ou ctrl+c dans le terminal.")
         print("Bienvenue dans l'application de test des algorithmes de recherche d'une solution au PVC.")
         print("Ecrivez le nombre correspondant à l'action que vous souhaitez effectuer.")
         while True:
             print("---------------------------------------------")
-            print("Sélectionner un algorithme : ", self.ALGO_NOM[self.algo])
-            print("Sélectionner un nombre de sommets : ", self.nb_sommets)
-            print("Sélectionner un nombre d'essaies : ", self.nb_essaies)
+            print("Algorithme : ", self.ALGO_NOM[self.algo])
+            print("Nombre de sommets : ", self.nb_sommets)
+            print("Nombre d'essaies : ", self.nb_essaies)
             print("1) Choisir l'algorithme")
             print("2) Choisir le nombre de sommets")
             print("3) Choisir le nombre d'essaies")
             print("4) Lancer l'algorithme")
             print("5) Lancer tous les algorithmes")
             print("6) Test du temps d'exécution en fonction du nombre de sommets")
-            print("7) Quitter")
+            print("7) Tests du temps d'exécution de tous les algorithmes en fonction du nombre de sommets")
+            print("8) Dessiner un graphe et le cycle trouvé par l'algorithme")
+            print("9) Quitter")
             choix = int(input("Choix: "))
             if choix in dico.keys():
                 dico[choix]()
@@ -71,6 +73,7 @@ class App():
         
     def choisir_nb_sommets(self):
         self.nb_sommets = int(input("Nombre de sommets: "))
+        self.graphe = Graphe(self.nb_sommets)
         print("Nombre de sommets choisi : ", self.nb_sommets)
     
     def choisir_nb_essaies(self):
@@ -94,7 +97,8 @@ class App():
         print("Poids moyen du cycle : ", np.array(poids).sum()/self.nb_essaies)
         print("Poids médian du cycle : ", np.median(poids))
         print("Temps moyen d'exécution : ", np.array(temps).sum()/self.nb_essaies)
-        plt.hist(poids, bins = 50)
+        plt.hist(poids, bins = 10 + self.nb_essaies//20)
+        plt.xlabel("Poids du cycle")
         plt.title("Performance de l'algorithme " + self.ALGO_NOM[self.algo] + " sur " + str(self.nb_essaies) + " essaies")
         plt.show()
     
@@ -115,7 +119,8 @@ class App():
             print("Poids moyen du cycle : ", np.array(poids).sum()/self.nb_essaies)
             print("Poids médian du cycle : ", np.median(poids))
             print("Temps moyen d'exécution : ", np.array(temps).sum()/self.nb_essaies)
-            plt.hist(poids, bins = 50)
+            plt.hist(poids, bins = 10 + self.nb_essaies//20)
+            plt.xlabel("Poids du cycle")
             plt.title("Performance de l'algorithme " + self.ALGO_NOM[algo] + " sur " + str(self.nb_essaies) + " essaies")
             plt.show()
     
@@ -138,6 +143,46 @@ class App():
         print("Nombre de sommets max pour lequel le temps d'exécution est raisonable (inférieur à " + str(self.TEMPS_MAX) + " s): " + str(self.nb_sommets))
         self.nb_sommets = old_nb_sommets
         self.nb_essaies = old_nb_essaies
+
+    def tests_nb_sommet_croissant(self):
+        '''Teste l'efficacité des algorithmes en fonction du nombre de sommets
+        <!> Attention, cette fonction est très longue à s'exécuter <!>
+        Il est nécessaire de modifier les constantes TEMPS_MAX et AJOUTE_SOMMET
+        et de leur donner des valeurs raisonnables.
+        TEMPS_MAX < 0.3 et AJOUTE_SOMMET = 3 sont des valeurs raisonnables'''
+
+        resultats = {}
+
+        for i in range(1,6):
+            self.algo = i
+            temps = [0]
+            old_nb_sommets = self.nb_sommets
+            old_nb_essaies = self.nb_essaies
+            self.nb_sommets = 1
+            self.nb_essaies = 0
+            
+            print("Début des tests pour l'algo " + self.ALGO_NOM[self.algo])
+            while temps[len(temps) - 1] < self.TEMPS_MAX:
+                start_time = time.time()
+                self.nb_sommets += self.AJOUTE_SOMMET
+                Graphe(self.nb_sommets).executer(self.algo)
+                temps.append(time.time() - start_time)
+            print("Nombre de sommets max pour lequel le temps d'exécution est raisonable (inférieur à " + str(self.TEMPS_MAX) + " s): " + str(self.nb_sommets))
+            self.nb_sommets = old_nb_sommets
+            self.nb_essaies = old_nb_essaies
+            resultats[self.algo] = temps
+        plt.figure(1)
+        plt.clf()
+        for i in range(1,6):
+            plt.plot(resultats[i][:len(resultats[i]) - 2], label = self.ALGO_NOM[i])
+        plt.legend()
+        plt.xlabel("Nombre de sommets")
+        plt.ylabel("Temps d'exécution (s)")
+        plt.title("Temps d'exécution en fonction du nombre de sommets")
+        plt.show()
+
+    def dessiner_graphe(self):
+        self.graphe.dessiner(self.graphe.executer(self.algo))
 
     def quitter(self):
         print("Fermeture de l'application")
